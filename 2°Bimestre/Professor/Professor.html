@@ -1,0 +1,66 @@
+--### 1. 🍎 Aluno e Professor (Feedback de Nota)
+**Objetivo:** Praticar lógica condicional (`if/else`) no servidor.
+* **O Cliente:** Envia o nome do aluno e sua nota final (0 a 10).
+* **O Servidor:** Verifica se a nota é maior ou igual a 7.
+* **O Retorno:** Se aprovado, responde *"Parabéns [Nome]! Você foi aprovado!"*. Caso contrário, *"Olá [Nome], você precisará de recuperação"*.
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Enviar mensagens</title>
+</head>
+
+<body>
+    <h1>Envie uma mensagem para o servidor</h1>
+    <label for="enderecoServidorInput">Endereço do Servidor:</label>
+    <input type="text" id="enderecoServidorInput" placeholder="Digite o endereço do servidor" value="localhost"><br><br>
+    
+    <label for="inputPorta">Porta:</label>
+    <input type="text" id="inputPorta" placeholder="Digite a porta" value="3000"><br><br>
+    <label for="inputNome">Nome:</label>
+    <input type="text" id="inputNome" placeholder="Digite o seu nome">
+    <br><br>
+    <label for="inputNota">Nota:</label>
+    <input type="number" id="inputNota" placeholder="Digite a sua nota">
+    <button onclick="enviarMensagem()">Enviar</button>
+    <br>
+    <br>
+    <h3> Resposta do servidor</h3>
+    <span id="respostaDoServidor">.....</span>    
+
+    <script>
+        async function enviarMensagem() {
+            const enderecoServidor = document.getElementById('enderecoServidorInput').value;
+            const porta = document.getElementById('inputPorta').value;
+            // Criando um pacote de dados para enviar ao servidor
+            const meuPacoteDeDados = {               
+                nome:document.getElementById('inputNome').value,
+                nota: parseFloat(document.getElementById('inputNota').value)
+            };
+            //processo de envio da mensagem para o servidor usando fetch API
+            try {
+                const response = await fetch(`http://${enderecoServidor}:${porta}/enviar-mensagem`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(meuPacoteDeDados),
+                });
+                //quando retornar a resposta do servidor, aguarde e processe a resposta
+                const data = await response.text(); // ESPERE e receba a resposta como texto
+
+                const {resposta} = JSON.parse(data); // ANALISE a resposta JSON para extrair o resultado
+
+                
+                
+                document.getElementById("respostaDoServidor").innerHTML = " A hipotenusa é: " + resposta;
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro na comunicação com o servidor');
+            }
+        }
+    </script>
+</body>
+
+</html>
