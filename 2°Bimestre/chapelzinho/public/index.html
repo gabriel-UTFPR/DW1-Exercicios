@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Lojinha da Vovó - Painel Cliente</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <h1>Lojinha da Vovó - Sistema de Comunicação</h1>
+    
+    <div class="container">
+        <h3>1. Consulta de Reposição de Estoque</h3>
+        <p>Verifique o que a Dispensa Básica precisa que seja produzido.</p>
+        <button onclick="verificarEstoque()">Verificar Necessidades</button>
+        <div id="resultadoEstoque" class="resultado">Aguardando requisição...</div>
+    </div>
+
+    <div class="container">
+        <h3>2. Envio de Bilhetes (Mensagens Gerais)</h3>
+        <p>Envie um recado avulso para a Servidorina.</p>
+        <p>Recados:</p>
+        <p>
+            Minimos (mostra as quantidades mínimas de cada produto);<br>
+            Quantidade de + nome singular do produto (mostra a quantidade no estoque);<br>
+            Nome do produto (faz uma consulta completa pelo nome informado).
+        </p>
+        <label for="inputMensagem">Bilhete:</label>
+        <input type="text" id="inputMensagem" placeholder="Ex: vouPrepararEEnviar">
+        <button onclick="enviarMensagem()">Enviar com Internetina</button>
+        <div id="resultadoMensagem" class="resultado">Aguardando resposta da vovó...</div>
+    </div>
+
+    <script>
+        const enderecoServidor = 'localhost';
+        const porta = '3001';
+
+        // Requisição GET para buscar dados
+        async function verificarEstoque() {
+            try {
+                const response = await fetch(`http://${enderecoServidor}:${porta}/api/estoque`);
+                const data = await response.json();
+
+                if (data.sucesso) {
+                    let html = '<strong>Itens a serem repostos:</strong><br><ul>';
+                    for (const [item, quantidade] of Object.entries(data.dados_reposicao)) {
+                        html += `<li>${item}: ${quantidade} unidades</li>`;
+                    }
+                    html += '</ul>';
+                    document.getElementById('resultadoEstoque').innerHTML = `<div class="sucesso">${html}</div>`;
+                } else {
+                    document.getElementById('resultadoEstoque').innerHTML = `<span class="erro">Erro ao acessar a Dispensa.</span>`;
+                }
+            } catch (error) {
+                document.getElementById('resultadoEstoque').innerHTML = '<span class="erro">Erro de Conexão com a Internetina!</span>';
+            }
+        }
+
+        // Requisição POST para enviar dados (JSON)
+        async function enviarMensagem() {
+            const mensagem = document.getElementById('inputMensagem').value.trim();
+            if (!mensagem) return alert('Não envie bilhetes em branco!');
+
+            const bilheteJSON = { mensagem: mensagem };
+
+            try {
+                const response = await fetch(`http://${enderecoServidor}:${porta}/api/mensagens`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bilheteJSON)
+                });
+
+                const data = await response.json();
+
+                if (data.status === "sucesso") {
+                    document.getElementById('resultadoMensagem').innerHTML = data.mensagem
+                } else {
+                    document.getElementById('resultadoMensagem').innerHTML = `<span class="erro">${data.mensagem}</span>`;
+                }
+            } catch (error) {
+                document.getElementById('resultadoMensagem').innerHTML = '<span class="erro">Erro na comunicação com a Servidorina.</span>';
+            }
+        }
+    </script>
+</body>
+</html>
