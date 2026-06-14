@@ -83,7 +83,7 @@ app.post('/enviar-imagem', upload.single('foto'), (req, res) => {
         res.json({ 
             mensagem: 'Imagem salva com sucesso!',
             nomeArquivo: req.file.filename,
-            caminho: req.file.path
+            caminho: req.file.path,
         });
 
     } catch (error) {

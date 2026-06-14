@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lojinha da Vovó</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+    <!-- TELA DE LOGIN -->
+    <div id="telaLogin">
+        <div class="login-box">
+            <div class="login-icon">🧺</div>
+            <h1>Lojinha da Vovó</h1>
+            <p class="login-sub">Painel da Dispensa Básica</p>
+            <div class="campo">
+                <label>Nome</label>
+                <input type="text" id="loginNome" placeholder="vovo" />
+            </div>
+            <div class="campo">
+                <label>Senha</label>
+                <input type="password" id="loginSenha" placeholder="••••" />
+            </div>
+            <button onclick="fazerLogin()">Entrar</button>
+            <p id="erroLogin" class="erro" style="display:none"></p>
+        </div>
+    </div>
+
+    <!-- PAINEL PRINCIPAL -->
+    <div id="painelPrincipal" style="display:none">
+
+        <header>
+            <div class="header-titulo">
+                <span class="header-icon">🧺</span>
+                <div>
+                    <h1>Lojinha da Vovó</h1>
+                    <span class="header-sub">Dispensa Básica</span>
+                </div>
+            </div>
+            <div class="header-usuario">
+                <span id="nomeUsuario"></span>
+                <button class="btn-sair" onclick="sair()">Sair</button>
+            </div>
+        </header>
+
+        <nav>
+            <button class="nav-btn ativo" onclick="mostrarAba('estoque', this)">📦 Reposição</button>
+            <button class="nav-btn" onclick="mostrarAba('produtos', this)">🥫 Produtos</button>
+            <button class="nav-btn" onclick="mostrarAba('cadastrar', this)">➕ Cadastrar</button>
+        </nav>
+
+        <!-- ABA: REPOSIÇÃO -->
+        <section id="abaEstoque" class="aba">
+            <div class="card">
+                <h2>Necessidades de Reposição</h2>
+                <p class="card-sub">Itens abaixo do estoque mínimo que precisam ser produzidos.</p>
+                <button onclick="carregarEstoque()">🔄 Verificar Agora</button>
+                <div id="resultadoEstoque" class="resultado">Clique em "Verificar Agora" para checar.</div>
+            </div>
+        </section>
+
+        <!-- ABA: PRODUTOS -->
+        <section id="abaProdutos" class="aba" style="display:none">
+            <div class="card">
+                <h2>Todos os Produtos</h2>
+                <p class="card-sub">Clique em um produto para editar ou remover.</p>
+                <button onclick="carregarProdutos()">🔄 Atualizar Lista</button>
+                <div id="resultadoProdutos" class="resultado">Clique em "Atualizar Lista" para ver os produtos.</div>
+            </div>
+        </section>
+
+        <!-- ABA: CADASTRAR -->
+        <section id="abaCadastrar" class="aba" style="display:none">
+            <div class="card">
+                <h2>Cadastrar Produto</h2>
+                <p class="card-sub">Adicione um novo item à dispensa.</p>
+                <div class="form-grid">
+                    <div class="campo">
+                        <label>Nome do Produto</label>
+                        <input type="text" id="cadNome" placeholder="Ex: Arroz" />
+                    </div>
+                    <div class="campo">
+                        <label>Quantidade Atual</label>
+                        <input type="number" id="cadQtd" placeholder="Ex: 10" min="0" />
+                    </div>
+                    <div class="campo">
+                        <label>Quantidade Mínima</label>
+                        <input type="number" id="cadMin" placeholder="Ex: 5" min="0" />
+                    </div>
+                    <div class="campo">
+                        <label>Quantidade Máxima</label>
+                        <input type="number" id="cadMax" placeholder="Ex: 20" min="1" />
+                    </div>
+                </div>
+                <button onclick="cadastrarProduto()">✅ Cadastrar</button>
+                <p id="msgCadastro" class="msg" style="display:none"></p>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- MODAL DE EDIÇÃO -->
+    <div id="modalOverlay" style="display:none" onclick="fecharModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>✏️ Editar Produto</h3>
+            <input type="hidden" id="editId" />
+            <div class="campo">
+                <label>Nome</label>
+                <input type="text" id="editNome" />
+            </div>
+            <div class="campo">
+                <label>Quantidade Atual</label>
+                <input type="number" id="editQtd" min="0" />
+            </div>
+            <div class="campo">
+                <label>Quantidade Mínima</label>
+                <input type="number" id="editMin" min="0" />
+            </div>
+            <div class="campo">
+                <label>Quantidade Máxima</label>
+                <input type="number" id="editMax" min="1" />
+            </div>
+            <div class="modal-btns">
+                <button onclick="salvarEdicao()">💾 Salvar</button>
+                <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
+            </div>
+            <p id="msgEdicao" class="msg" style="display:none"></p>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:3001';
+        let usuarioLogado = '';
+
+        // ── LOGIN ─────────────────────────────────────────────────────────────
+
+        async function fazerLogin() {
+            const nome = document.getElementById('loginNome').value.trim();
+            const senha = document.getElementById('loginSenha').value.trim();
+            const erroEl = document.getElementById('erroLogin');
+
+            if (!nome || !senha) {
+                mostrarErroLogin('Preencha nome e senha.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, senha })
+                });
+                const data = await res.json();
+
+                if (data.status === 'sucesso') {
+                    usuarioLogado = nome;
+                    document.getElementById('nomeUsuario').textContent = nome;
+                    document.getElementById('telaLogin').style.display = 'none';
+                    document.getElementById('painelPrincipal').style.display = 'block';
+                    carregarEstoque();
+                } else {
+                    mostrarErroLogin(data.mensagem);
+                }
+            } catch {
+                mostrarErroLogin('Não foi possível conectar à Servidorina.');
+            }
+        }
+
+        function mostrarErroLogin(msg) {
+            const el = document.getElementById('erroLogin');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && document.getElementById('telaLogin').style.display !== 'none') {
+                fazerLogin();
+            }
+        });
+
+        function sair() {
+            usuarioLogado = '';
+            document.getElementById('painelPrincipal').style.display = 'none';
+            document.getElementById('telaLogin').style.display = 'flex';
+            document.getElementById('loginNome').value = '';
+            document.getElementById('loginSenha').value = '';
+            document.getElementById('erroLogin').style.display = 'none';
+        }
+
+        // ── ABAS ──────────────────────────────────────────────────────────────
+
+        function mostrarAba(nome, btn) {
+            document.querySelectorAll('.aba').forEach(a => a.style.display = 'none');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('ativo'));
+            document.getElementById('aba' + nome.charAt(0).toUpperCase() + nome.slice(1)).style.display = 'block';
+            btn.classList.add('ativo');
+        }
+
+        // ── ESTOQUE ───────────────────────────────────────────────────────────
+
+        async function carregarEstoque() {
+            const el = document.getElementById('resultadoEstoque');
+            el.innerHTML = '<span class="carregando">Verificando dispensa...</span>';
+
+            try {
+                const res = await fetch(`${API}/api/estoque`);
+                const data = await res.json();
+
+                const itens = Object.entries(data.dados_reposicao);
+                if (itens.length === 0) {
+                    el.innerHTML = '<span class="sucesso">✅ Tudo em ordem! Nenhum item precisa de reposição.</span>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th>Produto</th><th>Repor (unidades)</th></tr></thead><tbody>';
+                itens.forEach(([nome, qtd]) => {
+                    html += `<tr><td>${nome}</td><td><span class="badge-repor">${qtd}</span></td></tr>`;
+                });
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } catch {
+                el.innerHTML = '<span class="erro">❌ Erro de conexão com a Servidorina.</span>';
+            }
+        }
+
+        // ── PRODUTOS ──────────────────────────────────────────────────────────
+
+        async function carregarProdutos() {
+            const el = document.getElementById('resultadoProdutos');
+            el.innerHTML = '<span class="carregando">Carregando produtos...</span>';
+
+            try {
+                const res = await fetch(`${API}/api/produtos`);
+                const data = await res.json();
+
+                if (data.produtos.length === 0) {
+                    el.innerHTML = '<span>Nenhum produto cadastrado ainda.</span>';
+                    return;
+                }
+
+                let html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Qtd Atual</th>
+                                <th>Mínimo</th>
+                                <th>Máximo</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.produtos.forEach(p => {
+                    const baixo = p.quantidade_produto < p.quantidade_minima_produto;
+                    const status = baixo
+                        ? '<span class="badge-baixo">⚠️ Baixo</span>'
+                        : '<span class="badge-ok">✅ OK</span>';
+
+                    html += `
+                        <tr>
+                            <td>${p.id_produto}</td>
+                            <td>${p.nome_produto}</td>
+                            <td>${p.quantidade_produto}</td>
+                            <td>${p.quantidade_minima_produto}</td>
+                            <td>${p.quantidade_maxima_produto}</td>
+                            <td>${status}</td>
+                            <td>
+                                <button class="btn-editar" onclick='abrirModal(${JSON.stringify(p)})'>✏️</button>
+                                <button class="btn-deletar" onclick="deletarProduto(${p.id_produto}, '${p.nome_produto}')">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                el.innerHTML = html;
+            } catch {
+                el.innerHTML = '<span class="erro">❌ Erro ao carregar produtos.</span>';
+            }
+        }
+
+        // ── CADASTRAR ─────────────────────────────────────────────────────────
+
+        async function cadastrarProduto() {
+            const nome = document.getElementById('cadNome').value.trim();
+            const qtd = parseInt(document.getElementById('cadQtd').value);
+            const min = parseInt(document.getElementById('cadMin').value);
+            const max = parseInt(document.getElementById('cadMax').value);
+            const msgEl = document.getElementById('msgCadastro');
+
+            if (!nome || isNaN(qtd) || isNaN(min) || isNaN(max)) {
+                mostrarMsg(msgEl, 'Preencha todos os campos.', 'erro');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/api/produtos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome_produto: nome,
+                        quantidade_produto: qtd,
+                        quantidade_minima_produto: min,
+                        quantidade_maxima_produto: max
+                    })
+                });
+                const data = await res.json();
+
+                if (data.status === 'sucesso') {
+                    mostrarMsg(msgEl, '✅ ' + data.mensagem, 'sucesso');
+                    document.getElementById('cadNome').value = '';
+                    document.getElementById('cadQtd').value = '';
+                    document.getElementById('cadMin').value = '';
+                    document.getElementById('cadMax').value = '';
+                } else {
+                    mostrarMsg(msgEl, '❌ ' + data.mensagem, 'erro');
+                }
+            } catch {
+                mostrarMsg(msgEl, '❌ Erro de conexão.', 'erro');
+            }
+        }
+
+        // ── EDITAR (MODAL) ────────────────────────────────────────────────────
+
+        function abrirModal(produto) {
+            document.getElementById('editId').value = produto.id_produto;
+            document.getElementById('editNome').value = produto.nome_produto;
+            document.getElementById('editQtd').value = produto.quantidade_produto;
+            document.getElementById('editMin').value = produto.quantidade_minima_produto;
+            document.getElementById('editMax').value = produto.quantidade_maxima_produto;
+            document.getElementById('msgEdicao').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        async function salvarEdicao() {
+            const id = document.getElementById('editId').value;
+            const nome = document.getElementById('editNome').value.trim();
+            const qtd = parseInt(document.getElementById('editQtd').value);
+            const min = parseInt(document.getElementById('editMin').value);
+            const max = parseInt(document.getElementById('editMax').value);
+            const msgEl = document.getElementById('msgEdicao');
+
+            if (!nome || isNaN(qtd) || isNaN(min) || isNaN(max)) {
+                mostrarMsg(msgEl, 'Preencha todos os campos.', 'erro');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/api/produtos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nome_produto: nome,
+                        quantidade_produto: qtd,
+                        quantidade_minima_produto: min,
+                        quantidade_maxima_produto: max
+                    })
+                });
+                const data = await res.json();
+
+                if (data.status === 'sucesso') {
+                    mostrarMsg(msgEl, '✅ ' + data.mensagem, 'sucesso');
+                    setTimeout(() => { fecharModal(); carregarProdutos(); }, 1000);
+                } else {
+                    mostrarMsg(msgEl, '❌ ' + data.mensagem, 'erro');
+                }
+            } catch {
+                mostrarMsg(msgEl, '❌ Erro de conexão.', 'erro');
+            }
+        }
+
+        // ── DELETAR ───────────────────────────────────────────────────────────
+
+        async function deletarProduto(id, nome) {
+            if (!confirm(`Remover "${nome}" da dispensa?`)) return;
+
+            try {
+                const res = await fetch(`${API}/api/produtos/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+
+                if (data.status === 'sucesso') {
+                    carregarProdutos();
+                } else {
+                    alert('Erro: ' + data.mensagem);
+                }
+            } catch {
+                alert('Erro de conexão.');
+            }
+        }
+
+        // ── UTILS ─────────────────────────────────────────────────────────────
+
+        function mostrarMsg(el, texto, tipo) {
+            el.textContent = texto;
+            el.className = 'msg ' + tipo;
+            el.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
