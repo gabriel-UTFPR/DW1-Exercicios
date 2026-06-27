@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="Style.css">
+    <script src="Script.js"></script>
+    <title>Menu - Produtos</title>
+</head>
+<body>
+    <header>
+        <img src="imagens/carrinho.png" alt="Carrinho de compras">
+        <h1>Produtos - Mercado V.0</h1>
+        <select name="pagina" id="pagina" onchange="MudarPagina()">
+            <option value="">Mudar de página</option>
+            <option value="inicio">Início</option>
+           <!-- <option value="fornecedores">Fornecedores</option>-->
+            <option value="clientes">Clientes</option>
+        </select>
+    </header>
+    <main>
+        <div class="conteinerProduto">
+            <label for="inputProduto">Pesquisa:</label>
+            <input type="text" id="inputProduto" placeholder="Digite um dado do produto...">
+
+            <button onclick="BuscarProdutos()">Buscar todos</button>
+            <button onclick="BuscarCod()">Buscar por código</button>
+            <button onclick="BuscarDescricao()">Buscar por descrição</button>
+            <button onclick="BuscarTipo()">Buscar por Tipo</button>
+            <button onclick="BuscarEstoque()">Estoque</button>
+            <button onclick="BuscarLucro()">Lucro</button>
+        </div>
+        <div id="saidaProduto">Esperando resposta do Servidor...</div>
+    </main>
+    <footer>
+        <h2>Gabriel Soares</h2>
+    </footer>
+</body>
+</html>
